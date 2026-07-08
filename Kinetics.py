@@ -17,8 +17,12 @@ class Batch:
     lag: float # hrs apparent lag time
     Rmax: float # g/(L h) Max rate of sugar consumption
 
-batch1 = Batch("Batch 1", 1.044, 1.010, 27, 1.7185, 0.45, 0.15, 0.085, 0.11, 1.164, 1.5, 3)
+batch1 = Batch("Batch 1", 1.044, 1.010, 27, 1.7185, 0.45, 0.025, 0.015, 0.1, 1.164, 1.5, 2.8494)
+batch2 = Batch("Batch 2", 1.042, 1.008, 27, 2.729, 0.45, 0.025, 0.015, 0.1, 0.73, 2.2, 1.1417)#4.99)
+
+"""batch1 = Batch("Batch 1", 1.044, 1.010, 27, 1.7185, 0.45, 0.15, 0.085, 0.11, 1.164, 1.5, 3)
 batch2 = Batch("Batch 2", 1.042, 1.008, 27, 2.729, 0.45, 0.15, 0.085, 0.11, 0.73, 2.2, 3)
+"""
 
 def data_processing(batch):
     OG = batch.OG
@@ -26,44 +30,49 @@ def data_processing(batch):
     C0 = 2714 * OG - 2713
     C1 = 2714 * FG - 2713
     P = C0 - C1
-    return C0, P
+    ABV = ( OG - FG ) * 131.25
+    E1 = 7.89 * ABV
+    Yes = E1 / P
+    return C0, P, E1, Yes
 def Gompertz_model(time, batch):
     P_t = P * np.exp( -1 * np.exp(((batch.Rmax * np.e)/(P)) * (batch.lag - time) + 1))
     return P_t
-
 def Monod_Growth_model(time, batch):
     C = C0
     X = batch.pitching_rate
+    E = 0
 
     C_history = []
-    X_histroy = []
-    mu_history = []
+    X_history = []
+    E_history = []
 
-    dt = 1
+    dt = time[1] - time[0]
 
     for t in time:
-        mu = batch.mu_max * ((C)/(batch.Ks + C)) * np.exp(-1 * batch.Ki * 0.51143 * (C0 - C))
-        dX = mu * X * dt
-        dC = (- 1/batch.Yxs) * dX
+        I = (1 - E / 94.71) ** 2
+        mu = batch.mu_max * (C/(batch.Ks + C)) * I # Yeast growth rate
+        dX = mu * X * (1 - X/8) * dt
+        R = batch.Rmax * C / (batch.Ks + C) * I
+        dC = - R * X * dt
+        dE = - Yes * dC
 
         C += dC
+        E += dE
         X += dX
-
-        C_history.append(C0 - C)
-        X_histroy.append(X)
-        mu_history.append(mu)
-
-    return C_history, X_histroy, mu_history
-
-def main(batch):
-    timescale = 72
+        C = max(C, 0)
+        C_history.append(C0-C)
+        E_history.append(E)
+        X_history.append(X)
+    print(f"C_history {C_history}, E_history {E_history}")
+    return C_history, X_history, E_history
+def main(batch, timescale=24):
     time = np.linspace(0,timescale, timescale + 1)
     P_t = []
     for i in time:
         y1 = Gompertz_model(i, batch)
         P_t.append(y1)
 
-    sugar, biomass, mu = Monod_Growth_model(time, batch)
+    sugar, biomass, E = Monod_Growth_model(time, batch)
     
     plt.figure(figsize=(10,7))
 
@@ -79,19 +88,21 @@ def main(batch):
 
     plt.subplot(2, 1, 2)
     plt.plot(time, sugar, label=f"{batch.name} \n Sugar Consumed {round(((max(sugar) - min(sugar)) * batch.V ), 1)} g")
+    plt.plot(time, E, label=f"{batch.name} Ethanol Produced")
     plt.xlim(min(time))
-    plt.ylim(min(sugar))
+    plt.ylim(min(E))
     plt.title("Monod Kinetic Model")
     plt.xlabel("Time (hrs)")
-    plt.ylabel("Sugar Consumed (g/L)")
+    plt.ylabel("Concentration (g/L)")
     plt.grid(True)
     plt.legend()
 
     plt.subplots_adjust(wspace=0.1, hspace=0.5)
     plt.show()
 
-command = int(input(f"Which batch are you looking for? \nType in the corresponding batch number - "))
-corresponding = {1: batch1, 2: batch2}
+#command = int(input(f"Which batch are you looking for? \nType in the corresponding batch number - "))
+#corresponding = {1: batch1, 2: batch2}
+#requested_timescale = int(input(f"What modelling timescale are you looking for? \n Type a number in hours - "))
 
-C0, P = data_processing(corresponding[command])
-main(corresponding[command])
+C0, P, E1, Yes = data_processing(batch2)#corresponding[command])
+main(batch2, 72)#corresponding[command], requested_timescale)
