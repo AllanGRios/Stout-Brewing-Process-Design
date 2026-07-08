@@ -31,8 +31,10 @@ def data_processing(batch):
     Yes = E1 / P
     return C0, P, E1, Yes
 def Gompertz_model(time, batch):
-    P_t = P * np.exp( -1 * np.exp(((batch.Rmax * np.e)/(P)) * (batch.lag - time) + 1))
-    return P_t
+    E_max = E1
+    S_t = S_max * np.exp(-1 * np.exp(((batch.Rmax * np.e) / (S_max)) * (batch.lag - time) + 1))
+    E_t = E_max * np.exp(-1 * np.exp(((batch.Rmax * np.e) / (E_max)) * (batch.lag - time) + 1))
+    return S_t, E_t
 def Monod_Growth_model(time, batch):
     C = C0
     X = batch.pitching_rate
@@ -62,22 +64,25 @@ def Monod_Growth_model(time, batch):
     return C_history, X_history, E_history
 def main(batch, timescale=24):
     time = np.linspace(0,timescale, timescale + 1)
-    P_t = []
+    S_t = []
+    E_t = []
     for i in time:
-        y1 = Gompertz_model(i, batch)
-        P_t.append(y1)
+        y1, y2 = Gompertz_model(i, batch)
+        S_t.append(y1)
+        E_t.append(y2)
 
     sugar, biomass, E = Monod_Growth_model(time, batch)
     
     plt.figure(figsize=(10,7))
 
     plt.subplot(2, 1, 1)
-    plt.plot(time,P_t, label=f"{batch.name} \n Sugar Consumed {round(((max(P_t) - min(P_t)) * batch.V ), 1)} g")
+    plt.plot(time,S_t, label=f"{batch.name} \n Sugar Consumed {round(((max(S_t) - min(S_t)) * batch.V ), 1)} g")
+    plt.plot(time, E_t, label=f"{batch.name} Ethanol Produced")
     plt.xlim(min(time))
-    plt.ylim(min(P_t))
-    plt.title("Modified Gompertz For Sugar Consumption")
+    plt.ylim(min(S_t))
+    plt.title("Modified Gompertz Model")
     plt.xlabel("Time (hrs)")
-    plt.ylabel("Sugar Consumed (g/L)")
+    plt.ylabel("Concentration (g/L)")
     plt.grid(True)
     plt.legend()
 
@@ -86,7 +91,7 @@ def main(batch, timescale=24):
     plt.plot(time, E, label=f"{batch.name} Ethanol Produced")
     plt.xlim(min(time))
     plt.ylim(min(E))
-    plt.title("Monod Kinetic Model")
+    plt.title("Modified Monod-Logistic Model")
     plt.xlabel("Time (hrs)")
     plt.ylabel("Concentration (g/L)")
     plt.grid(True)
@@ -99,5 +104,5 @@ command = int(input(f"Which batch are you looking for? \nType in the correspondi
 corresponding = {1: batch1, 2: batch2}
 requested_timescale = int(input(f"What modelling timescale are you looking for? \n Type a number in hours - "))
 
-C0, P, E1, Yes = data_processing(corresponding[command])
+C0, S_max, E1, Yes = data_processing(corresponding[command])
 main(corresponding[command], requested_timescale)
