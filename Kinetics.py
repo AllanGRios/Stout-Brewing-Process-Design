@@ -18,11 +18,7 @@ class Batch:
     Rmax: float # g/(L h) Max rate of sugar consumption
 
 batch1 = Batch("Batch 1", 1.044, 1.010, 27, 1.7185, 0.45, 0.025, 0.015, 0.1, 1.164, 1.5, 2.8494)
-batch2 = Batch("Batch 2", 1.042, 1.008, 27, 2.729, 0.45, 0.025, 0.015, 0.1, 0.73, 2.2, 1.1417)#4.99)
-
-"""batch1 = Batch("Batch 1", 1.044, 1.010, 27, 1.7185, 0.45, 0.15, 0.085, 0.11, 1.164, 1.5, 3)
-batch2 = Batch("Batch 2", 1.042, 1.008, 27, 2.729, 0.45, 0.15, 0.085, 0.11, 0.73, 2.2, 3)
-"""
+batch2 = Batch("Batch 2", 1.042, 1.008, 27, 2.729, 0.45, 0.025, 0.015, 0.1, 0.73, 2.2, 1.1417)
 
 def data_processing(batch):
     OG = batch.OG
@@ -63,7 +59,6 @@ def Monod_Growth_model(time, batch):
         C_history.append(C0-C)
         E_history.append(E)
         X_history.append(X)
-    print(f"C_history {C_history}, E_history {E_history}")
     return C_history, X_history, E_history
 def main(batch, timescale=24):
     time = np.linspace(0,timescale, timescale + 1)
@@ -100,9 +95,9 @@ def main(batch, timescale=24):
     plt.subplots_adjust(wspace=0.1, hspace=0.5)
     plt.show()
 
-#command = int(input(f"Which batch are you looking for? \nType in the corresponding batch number - "))
-#corresponding = {1: batch1, 2: batch2}
-#requested_timescale = int(input(f"What modelling timescale are you looking for? \n Type a number in hours - "))
+command = int(input(f"Which batch are you looking for? \nType in the corresponding batch number - "))
+corresponding = {1: batch1, 2: batch2}
+requested_timescale = int(input(f"What modelling timescale are you looking for? \n Type a number in hours - "))
 
-C0, P, E1, Yes = data_processing(batch2)#corresponding[command])
-main(batch2, 72)#corresponding[command], requested_timescale)
+C0, P, E1, Yes = data_processing(corresponding[command])
+main(corresponding[command], requested_timescale)
